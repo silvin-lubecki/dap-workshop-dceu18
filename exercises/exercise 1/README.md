@@ -1,5 +1,7 @@
 # Exercise 1 - Set up your environment
 
+> **Time**: Approximately 5 minutes
+
 ## Create a Docker Hub account
 
 You need a Docker Hub account.
