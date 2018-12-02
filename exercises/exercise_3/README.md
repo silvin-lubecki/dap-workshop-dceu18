@@ -1,4 +1,4 @@
-# Exercise - Docker Application Package Introduction
+# Exercise - Discover Docker Application Package
 
 > **Time**: Approximately 10 minutes
 

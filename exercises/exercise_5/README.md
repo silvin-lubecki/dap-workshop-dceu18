@@ -1,4 +1,4 @@
-# Exercise - Deploy with docker-app
+# Exercise - Install with docker-app
 
 With this exerise you will learn how to deploy an application package using `docker-app`.
 

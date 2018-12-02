@@ -23,6 +23,17 @@ $ touch docker-compose.yml
 ```
 ![editor](editor.png)
 
+You should have a file like the following:
+```yaml
+version: '3.7'
+services:
+  hello:
+    image: hashicorp/http-echo:latest
+    command: ["-text", "Hello DockerCon", "-listen",":8080"]
+    ports:
+     - 8080:8080
+```
+
 ## Deploy your Compose file
 
 Now that we have a compose file, we need to deploy it. There are two ways to do this:
