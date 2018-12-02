@@ -2,6 +2,6 @@ version: '3.7'
 services:
   hello:
     image: hashicorp/http-echo:latest
-    command: ["-text", "Hello world", "-listen",":8080"]
+    command: ["-text", "Hello DockerCon", "-listen",":8080"]
     ports:
      - 8080:8080
