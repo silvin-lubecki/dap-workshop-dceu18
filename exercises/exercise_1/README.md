@@ -90,6 +90,8 @@ Status: Downloaded newer image for dapworkshop/workshop:latest
 
 Now the workshop can really start!
 
+## How to save your work
+
 **You may want to set a reminder to save your exercises locally before leaving the workshop. We will remind you at the end as well.**.
 
 For those using PWD, you can copy/paste the `SSH` address and use it to `SCP` (Secure File Copy through SSH) all your files:
