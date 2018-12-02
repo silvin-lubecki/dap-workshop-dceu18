@@ -6,14 +6,25 @@ During this exercise we will learn how to write a Compose file and deploy it on 
 
 ## Write a Compose file
 
-**Write a compose file** `docker-compose.yml` with the following elements:
+* **Write a compose file** `docker-compose.yml` with the following elements:
 - Compose version `3.7`
 - One service `hello`
 - Runs the `hashicorp/http-echo:latest` image
-- Use and expose port `8080`
+- Listen and expose port `8080`
 - The service should print `Hello DockerCon`
 
-**Note:** You can edit a file after touching it, using the PWD online editor.
+**Help**: You can run this image `hashicorp/http-echo:latest` to get some help
+```sh
+$ docker run hashicorp/http-echo:latest --help
+Usage of /http-echo:
+  -listen string
+        address and port to listen (default ":5678")
+  -text string
+        text to put on the webpage
+  -version
+        display version information
+```
+**NOTE:** You can edit a file after touching it, using the PWD online editor.
 
 ![editor button](editor-button.png)
 
