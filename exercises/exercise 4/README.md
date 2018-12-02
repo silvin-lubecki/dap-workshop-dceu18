@@ -234,3 +234,33 @@ $ docker-app render hello -f prod-parameters.yml | docker stack deploy my-prod-a
 - With parameters you can use the same compose file and target multiple environments (dev/test/staging/prod/...) 
 - Render let's you check what will be the exact compose-file deployed
 - You can pipe the result of a render to your current workflow (`docker-compose`, `docker stack deploy`) and still use some of the benefits of docker-app
+
+Here is a generic application package template:
+
+```yaml
+version: 0.1.0
+name: base
+description: A generic application template which takes an image as a parameter
+maintainers:
+  - name: garethr
+    email: garethr@docker.com
+
+---
+version: '3.7'
+services:
+  app:
+    image: ${image}
+    ports:
+     - ${port}:${port}
+    deploy:
+      replicas: ${replicas}
+      resources:
+        limits:
+          memory: ${memory}
+
+---
+image: 
+port: 8080
+replicas: 1
+memory: 128MB
+```
