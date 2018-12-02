@@ -81,9 +81,35 @@ Gracefully stopping... (press Ctrl+C again to force)
 Stopping workshop_hello_1_550ca1a27072 ... done
 ```
 
-**Note** that the containers are prefixed with the `current directory` then `service` then `replicas index`. The application name is the current directory.
+**NOTE:** that the containers are prefixed with the `current directory` then `service` then `replicas index`. The application name is the current directory.
 
-#### Scale your application
+**NOTE:** Hit `Alt+Enter` to enter a *fullscreen* mode
+
+### Deploy using `docker stack`
+
+Another way to deploy your compose file is to use `docker stack deploy`. It introduces the concept of stack, which you can query directly from docker.
+During this workshop we will focus on `swarm` orchestrator, but the same commands work the same way targeting `kubernetes` orchestrator.
+
+The `docker stack` commands
+```sh
+$ docker stack --help
+
+Usage:  docker stack [OPTIONS] COMMAND
+
+Manage Docker stacks
+
+Options:
+      --orchestrator string   Orchestrator to use (swarm|kubernetes|all)
+
+Commands:
+  deploy      Deploy a new stack or update an existing stack
+  ls          List stacks
+  ps          List the tasks in the stack
+  rm          Remove one or more stacks
+  services    List the services in the stack
+
+Run 'docker stack COMMAND --help' for more information on a command.
+```
 
 We will now use the following `docker-compose.yml` file, which describes a simple application with 3 services, a frontend, a backend and a database.
 ```yaml
@@ -107,119 +133,15 @@ services:
 * **Create a new `words` directory**
 * **Move to the `words`** directory
 * **Copy paste** this compose file in it as `docker-compose.yml`
-* **Deploy** the compose file, but with `--detach` flag. The deployment will be made in background.
+
 ```sh
 workshop $ mkdir words
 workshop $ cd words
 words $ touch docker-compose.yml
 
 # edit the compose file
-
-words $ docker-compose up --detach
-WARNING: Some services (words) use the 'deploy' key, which will be ignored. Compose does not support 'deploy' configuration - use `dockerstack deploy` to deploy to a swarm.
-WARNING: The Docker Engine you're using is running in swarm mode.
-
-Compose does not use swarm mode to deploy services to multiple nodes in a swarm. All containers will be scheduled on the current node.
-
-To deploy your application across the swarm, use `docker stack deploy`.
-
-Pulling web (dockerdemos/lab-web:)...
-latest: Pulling from dockerdemos/lab-web
-e00d546a75ad: Pull complete
-1f2edc9eaabd: Pull complete
-9e80ae7662a0: Pull complete
-Pulling words (dockerdemos/lab-words:)...
-latest: Pulling from dockerdemos/lab-words
-e00d546a75ad: Already exists
-d2c2ce872318: Pull complete
-33b645a62723: Pull complete
-Pulling db (dockerdemos/lab-db:)...
-latest: Pulling from dockerdemos/lab-db
-b56ae66c2937: Pull complete
-fa78197d3423: Pull complete
-908e39998270: Pull complete
-d2e85f764a32: Pull complete
-e8dec25e7213: Pull complete
-408bb6c2e847: Pull complete
-3f9bb3846354: Pull complete
-bd73a6fb0593: Pull complete
-e181da0cd4a1: Pull complete
-571ec73eaa7b: Pull complete
-Creating words_words_1_8c009a36b2d2 ... done
-Creating words_web_1_7cc355cecb63   ... done
-Creating words_db_1_e689fccd4ad3    ... done
 ```
 
-As you can see, the `deploy` section of the `words` service is ignored, so there's only one replicas.
-You can also notice that the images were pulled before running the services. 
-
-* **Check the logs** using `docker-compose logs`. It will print the logs for each service and replicas.
-```sh
-$ docker-compose logs
-Attaching to workshop_web_1_8aa6fd5ddef2, workshop_words_1_adba85d19515, workshop_db_1_d44dc3005667
-db_1_d44dc3005667 | The files belonging to this database system will be owned by user "postgres".
-db_1_d44dc3005667 | This user must also own the server process.
-db_1_d44dc3005667 |
-db_1_d44dc3005667 | The database cluster will be initialized with locale "en_US.utf8".
-db_1_d44dc3005667 | The default database encoding has accordingly been set to "UTF8".
-db_1_d44dc3005667 | The default text search configuration will be set to "english".
-...
-```
-
-* **Scale** the words service to 3 replicas using the command `docker-compose scale`
-```sh
-$ docker-compose scale words=3
-Starting words_words_1_dee4bda4d1be ... done
-Creating words_words_2_bb72fab8e9bc ... done
-Creating words_words_3_1df7aa0cc47b ... done
-```
-
-* **Shutdown the services** using `docker-compose down`
-```sh
-$ docker-compose down
-docker-compose down
-Stopping words_words_3_3a79e54a6e1e ... done
-Stopping words_words_2_e02d3e977440 ... done
-Stopping words_db_1_d542f458574a    ... done
-Stopping words_web_1_f090b73d9c1f   ... done
-Stopping words_words_1_dee4bda4d1be ... done
-Removing words_words_3_3a79e54a6e1e ... done
-Removing words_words_2_e02d3e977440 ... done
-Removing words_db_1_d542f458574a    ... done
-Removing words_web_1_f090b73d9c1f   ... done
-Removing words_words_1_dee4bda4d1be ... done
-Removing network words_defaul
-```
-
-**Summary**:
-- `docker-compose` can quickly pull, deploy and remove your services.
-- You can scale any service, but the `deploy` section of the compose file is ignored.
-
-### Deploy using `docker stack`
-
-Another way to deploy your compose file is to use `docker stack deploy`. It introduces the concept of stack, which you can querry directly from docker.
-During this workshop we will focus on `swarm` orchestrator, but the same commands work the same way targeting `kubernetes` orchestrator.
-
-The `docker stack` commands
-```sh
-$ docker stack --help
-
-Usage:  docker stack [OPTIONS] COMMAND
-
-Manage Docker stacks
-
-Options:
-      --orchestrator string   Orchestrator to use (swarm|kubernetes|all)
-
-Commands:
-  deploy      Deploy a new stack or update an existing stack
-  ls          List stacks
-  ps          List the tasks in the stack
-  rm          Remove one or more stacks
-  services    List the services in the stack
-
-Run 'docker stack COMMAND --help' for more information on a command.
-```
 
 * **Deploy** using `docker stack deploy` command
 ```sh
@@ -288,6 +210,93 @@ Removing service words_words
 Removing network words_default
 ```
 
+**Summary**
+* `docker stack` introduces a stack concept, all services and containers linked to it, deploying on an orchestrator (vs mono-node with `docker-compose`)
+
+***BONUS EXERCISE: Scale your application using docker-compose***
+
+* **Deploy** the `words` compose file, but with `--detach` flag. The deployment will be made in background.
+
+```sh
+words $ docker-compose up --detach
+WARNING: Some services (words) use the 'deploy' key, which will be ignored. Compose does not support 'deploy' configuration - use `dockerstack deploy` to deploy to a swarm.
+WARNING: The Docker Engine you're using is running in swarm mode.
+
+Compose does not use swarm mode to deploy services to multiple nodes in a swarm. All containers will be scheduled on the current node.
+
+To deploy your application across the swarm, use `docker stack deploy`.
+
+Pulling web (dockerdemos/lab-web:)...
+latest: Pulling from dockerdemos/lab-web
+e00d546a75ad: Pull complete
+1f2edc9eaabd: Pull complete
+9e80ae7662a0: Pull complete
+Pulling words (dockerdemos/lab-words:)...
+latest: Pulling from dockerdemos/lab-words
+e00d546a75ad: Already exists
+d2c2ce872318: Pull complete
+33b645a62723: Pull complete
+Pulling db (dockerdemos/lab-db:)...
+latest: Pulling from dockerdemos/lab-db
+b56ae66c2937: Pull complete
+fa78197d3423: Pull complete
+908e39998270: Pull complete
+d2e85f764a32: Pull complete
+e8dec25e7213: Pull complete
+408bb6c2e847: Pull complete
+3f9bb3846354: Pull complete
+bd73a6fb0593: Pull complete
+e181da0cd4a1: Pull complete
+571ec73eaa7b: Pull complete
+Creating words_words_1_8c009a36b2d2 ... done
+Creating words_web_1_7cc355cecb63   ... done
+Creating words_db_1_e689fccd4ad3    ... done
+```
+
+As you can see, the `deploy` section of the `words` service is ignored, so there's only one replica.
+
+* **Check the logs** using `docker-compose logs`. It will print the logs for each service and replicas.
+```sh
+$ docker-compose logs
+Attaching to workshop_web_1_8aa6fd5ddef2, workshop_words_1_adba85d19515, workshop_db_1_d44dc3005667
+db_1_d44dc3005667 | The files belonging to this database system will be owned by user "postgres".
+db_1_d44dc3005667 | This user must also own the server process.
+db_1_d44dc3005667 |
+db_1_d44dc3005667 | The database cluster will be initialized with locale "en_US.utf8".
+db_1_d44dc3005667 | The default database encoding has accordingly been set to "UTF8".
+db_1_d44dc3005667 | The default text search configuration will be set to "english".
+...
+```
+
+* **Scale** the words service to 3 replicas using the command `docker-compose scale`
+```sh
+$ docker-compose scale words=3
+Starting words_words_1_dee4bda4d1be ... done
+Creating words_words_2_bb72fab8e9bc ... done
+Creating words_words_3_1df7aa0cc47b ... done
+```
+
+* **Shutdown the services** using `docker-compose down`
+```sh
+$ docker-compose down
+docker-compose down
+Stopping words_words_3_3a79e54a6e1e ... done
+Stopping words_words_2_e02d3e977440 ... done
+Stopping words_db_1_d542f458574a    ... done
+Stopping words_web_1_f090b73d9c1f   ... done
+Stopping words_words_1_dee4bda4d1be ... done
+Removing words_words_3_3a79e54a6e1e ... done
+Removing words_words_2_e02d3e977440 ... done
+Removing words_db_1_d542f458574a    ... done
+Removing words_web_1_f090b73d9c1f   ... done
+Removing words_words_1_dee4bda4d1be ... done
+Removing network words_defaul
+```
+
+**Summary**:
+- `docker-compose` can quickly pull, deploy and remove your services.
+- You can scale any service, but the `deploy` section of the compose file is ignored.
+
 #### `docker-compose` scale vs `docker stack` scale
 
 * **Re-up** your first `docker-compose.yml` file with `docker-compose up -d`
@@ -320,6 +329,7 @@ $ ID                  NAME                MODE                REPLICAS          
 ga6u5anhqcqv        hello_hello         replicated          3/3                 hashicorp/http-echo:latest   *:8080->8080/tcp
 ```
 
-**Summary**
-* `docker stack` introduces a stack concept, all services and containers linked to it, deploying on an orchestrator (vs mono-node with `docker-compose`)
-* Scaling a service with `stack` is more powerful than with `docker-compose`
+* **Remove** the stack using `docker stack rm`
+```sh
+$ docker stack rm hello
+```

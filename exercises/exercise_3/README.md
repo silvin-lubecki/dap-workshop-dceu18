@@ -3,7 +3,7 @@
 > **Time**: Approximately 10 minutes
 
 During this exercise we will introduce `Docker Application Package` and its dedicated tool `docker-app`.
-`Application Package` is a construction above `Compose file` to fluidify the application lifecycle, from development to test to production.
+`Application Package` is a construction above `Compose file` to improve the application lifecycle and workflow, from development to test to production.
 
 An application package is a set of 3 documents, plus custom files we name `attachments`:
 * a `metadata.yml` file describing the application metadata (name, version, description, ...)
