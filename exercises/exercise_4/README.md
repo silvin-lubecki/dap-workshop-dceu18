@@ -1,6 +1,6 @@
 # Exercise - Configure your application with parameters
 
-> **Time**: Approximately 15 minutes
+> **Time**: Approximately 20 minutes
 
 ## Introducing parameters
 

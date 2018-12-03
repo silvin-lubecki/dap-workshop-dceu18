@@ -1,11 +1,13 @@
 # Exercise - Install with docker-app
 
+> **Time**: Approximately 10 minutes
+
 With this exerise you will learn how to deploy an application package using `docker-app`.
 
 ## Bundle the application
 
 Deployment is named `install` with docker-app, but before installation, docker-app needs a step to prepare the `bundle`. This step generates two artifacts:
-- `bundle.json`
+- A manifest file `bundle.json`
 - an invocation image
 
 | Sources             | Compile             | Binary                         | Instantiate          | Runtime   |
@@ -132,7 +134,7 @@ The `invocation image` is a regular image, producing a regular docker container.
 - all the application package files + attachments
 
 The advantages to pack the installation as an invocation image are multiple:
-- it is self-sufficient and ca be executed on any docker engine
+- it is self-sufficient and can be executed on any docker engine
 - it is independant of the docker-app version your are using, as the runtime to deploy is embedded in the image. You will be able to re-deploy an old invocation-image without worrying about getting the old docker-app binary.
 - the invocation image can be shared on the hub or on any private registry (we will see that in the next exercise)
 

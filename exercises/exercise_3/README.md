@@ -1,6 +1,6 @@
 # Exercise - Discover Docker Application Package
 
-> **Time**: Approximately 10 minutes
+> **Time**: Approximately 20 minutes
 
 During this exercise we will introduce `Docker Application Package` and its dedicated tool `docker-app`.
 `Application Package` is a construction above `Compose file` to improve the application lifecycle and workflow, from development to test to production.

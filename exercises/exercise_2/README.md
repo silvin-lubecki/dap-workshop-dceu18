@@ -1,6 +1,6 @@
 # Exercise - Write and Deploy a Compose file
 
-> **Time**: Approximately 15 minutes
+> **Time**: Approximately 20 minutes
 
 During this exercise we will learn how to write a Compose file and deploy it on a local engine or on a Swarm cluster.
 

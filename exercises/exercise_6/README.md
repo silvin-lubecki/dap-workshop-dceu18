@@ -1,5 +1,7 @@
 # Exercise - Share your application
 
+> **Time**: Approximately 10 minutes
+
 With this exercise you will learn how to share your application.
 
 Using the commands `push` and `pull`, you can share your bundle on any public or private registry.
