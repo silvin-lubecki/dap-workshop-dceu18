@@ -32,7 +32,13 @@ Let's push the hello application to your own namespace (that's why you logged in
 
 ```sh
 $ docker-app push --namespace [myhublogin]
-FIXME
+The push refers to repository [docker.io/dapworkshop/words]
+a8e86457508f: Pushed
+abac5e0b2197: Pushed
+12ad74ab2cc9: Pushed
+df64d3292fd6: Mounted from docker/cnab-app-base
+0.1.0-invoc: digest: sha256:b92db3946b9c3750b31e744973b063cab1c9a8cf6e0e969ec1ba741ac414c477 size: 1157
+Successfully pushed dapworkshop/words:0.1.0@sha256:9819b6456dd7103a16177630cb45c7e6ee6e96fac69b2ac47a327063c688d342
 ```
 
 `pull` is much more easier:
@@ -49,7 +55,6 @@ Options:
 
 ```sh
 $ docker-app pull myneighbourhublogin/hello:0.1.0
-FIXME
 ```
 
 ## inspect
@@ -60,7 +65,13 @@ FIXME
 
 ```sh
 $ docker-app inspect myneighbour/hello:0.1.0
-FIXME
+words 0.1.0
+
+Services (3) Replicas Ports Image
+------------ -------- ----- -----
+web          1        33000 dockerdemos/lab-web
+words        3              dockerdemos/lab-words
+db           1              dockerdemos/lab-db
 ```
 
 ## install
@@ -69,7 +80,10 @@ And of course the `install` command too works the same way!
 
 ```sh
 $ docker-app install myneighbour/hello:0.1.0 --name app-pulled
-FIXME
+Creating network app-pulled_default
+Creating service app-pulled_web
+Creating service app-pulled_words
+Creating service app-pulled_db
 ```
 
 ## Summary
