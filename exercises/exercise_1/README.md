@@ -67,7 +67,7 @@ Login Succeeded
 We prepared an image containing everything needed for the workshop (docker CLI, docker-compose, docker-app, swarm, ...) and your prefered editors (nano, emacs, even vi!). Please run it, everything will happen in this container. 
 
 ```sh
-$ docker run -it -v /var/run/docker.sock:/var/run/docker.sock -v /root/workshop:/workshop dapworkshop/workshop
+$ docker run -it -v /var/run/docker.sock:/var/run/docker.sock -v /root/workshop:/workshop --network host dapworkshop/workshop
 Unable to find image 'dapworkshop/workshop:latest' locally
 latest: Pulling from dapworkshop/workshop
 32802c0cfa4d: Pull complete
