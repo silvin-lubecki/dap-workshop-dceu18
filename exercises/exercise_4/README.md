@@ -60,7 +60,7 @@ services:
 {}
 ```
 
-* **Edit** the `hello.dockerapp` file and replace the "Hello DockerCon" text with a variable `${hello.text}` and add the variable as a parameter in the `parameters` section
+* **Edit** the `hello.dockerapp` file and replace the "Hello DockerCon" text with a variable `"${hello.text}"` and add the variable as a parameter in the `parameters` section
 * **Use `validate`** while you edit your application to check everything is ok
 * **`inspect`** your application, now the parameters section is displayed
 
