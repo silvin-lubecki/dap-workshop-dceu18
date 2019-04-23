@@ -1,219 +1,266 @@
-# Exercise - Discover Docker Application Package
+# Exercise - Configure your application with parameters
 
 > **Time**: Approximately 20 minutes
 
-During this exercise we will introduce `Docker Application Package` and its dedicated tool `docker-app`.
-`Application Package` is a construction above `Compose file` to improve the application lifecycle and workflow, from development to test to production.
+## Introducing parameters
 
-An application package is a set of 3 documents, plus custom files we name `attachments`:
-* a `metadata.yml` file describing the application metadata (name, version, description, ...)
-* a `docker-compose.yml` file describing the application structure
-* a `parameters.yml` file with key/value parameters (we will see this part in the next exercise)
+During this exercise we will learn how add parameters and use them for deployment.
 
-First things first, let's initialize our first application package, using the previous `words` exercise.
+`docker-app` makes the already existing `Compose` variable substitutions system easy to use.
+Just replace any part of the compose file with a variable using this form: `${path.to.my-variable}`
+`docker-app` will seek into the `parameters.yml` file, which is a simple key/value YAML file, to find the default value.
 
-## Initialize the Application Package
-
-```sh
-$ docker-app init --help
-
-Usage:  docker-app init <app-name> [-c <compose-file>] [-d <description>] [-m name:email ...] [flags]
-
-Start building a Docker application. Will automatically detect a docker-compose.yml file in the current directory.
-
-Options:
-  -c, --compose-file string      Initial Compose file (optional)
-  -d, --description string       Initial description (optional)
-  -m, --maintainer stringArray   Maintainer (name:email) (optional)
-  -s, --single-file              Create a single-file application
-```
-
-* Use **docker-app init** command to create the application package from the compose file
-```sh
-workshop $ cd words
-words $ docker-app init myapp -d "My word application" -m dapworkshop:dapworkshop@docker.com
-words $ tree .
-.
-|-- docker-compose.yml
-`-- myapp.dockerapp
-    |-- docker-compose.yml
-    |-- metadata.yml
-    `-- parameters.yml
-
-1 directory, 4 files
-```
-
-This command creates a new directory with the name of your app + `.dockerapp` suffix. It copies the initial compose file and generates `metadata.yml` with the given information, plus an `parameters.yml` file.
-
-An application package can also be a single file, using the multi-yaml document feature. It's very handy for sharing an app!
-
-* **Merge** the application package to the one-file version
-
-```sh
-words $ docker-app merge myapp -o myapp-merged.dockerapp
-words $ cat myapp-merged.dockerapp
-```
+Here is the corresponding `parameters.yml` file:
 ```yaml
+path:
+    to:
+        my-variable: myvalue
+        other-variable: othervalue
+```
+
+**NOTE:** All the application parameters will be displayed using the `inspect` command.
+
+## Add parameters to an existing `docker-compose.yml` file
+
+We will re-use the first compose file we wrote, with the `hello` service.
+
+* **Go back** to `/workshop` and create a single-file `hello` application using the previous `docker-compose.yml`
+```sh
+words $ cd /workshop
+/workshop $ docker-app init hello --compose-file docker-compose.yml --description "Hello DockerCon application" --single-file
+```
+It produces a `hello.dockerapp` file which should be like the following:
+```yaml
+# This section contains your application metadata.
 # Version of the application
 version: 0.1.0
 # Name of the application
-name: myapp
+name: hello
 # A short description of the application
-description: My word application
+description: Hello DockerCon application
 # Namespace to use when pushing to a registry. This is typically your Hub username.
 #namespace: myhubusername
 # List of application maintainers with name and email for each
-maintainers:
-  - name: dapworkshop
-    email: dapworkshop@docker.com
+#maintainers:
+#  - name: John Doe
+#    email: john@doe.com
 
 ---
-version: "3.7"
+# This section contains the Compose file that describes your application services.
+version: '3.7'
 services:
-    web:
-     image: dockerdemos/lab-web
-     ports:
-      - "33000:80"
-
-    words:
-     image: dockerdemos/lab-words
-     deploy:
-       replicas: 5
-       endpoint_mode: dnsrr
-
-    db:
-     image: dockerdemos/lab-db
+  hello:
+    image: hashicorp/http-echo:latest
+    command: ["-text", "Hello DockerCon", "-listen",":8080"]
+    ports:
+     - 8080:8080
 
 ---
+# This section contains the default values for your application parameters.
 {}
 ```
 
-**NOTE:** If you don't specify the `-o`, the merge will transform your application to a one-file version in place, removing the 3 files. The same behavior applies to the `split` command.
+* **Edit** the `hello.dockerapp` file and replace the "Hello DockerCon" text with a variable `${hello.text}` and add the variable as a parameter in the `parameters` section
+* **Use `validate`** while you edit your application to check everything is ok
+* **`inspect`** your application, now the parameters section is displayed
 
-* **Split** the one-file application package to a directory
 ```sh
-words $ docker-app split myapp-merged.dockerapp -o myapp-split
-words $ tree.
-.
-|-- docker-compose.yml
-|-- myapp-merged.dockerapp
-|-- myapp-split
-|   |-- docker-compose.yml
-|   |-- metadata.yml
-|   `-- parameters.yml
-`-- myapp.dockerapp
-    |-- docker-compose.yml
-    |-- metadata.yml
-    `-- parameters.yml
+$ docker-app inspect hello
+hello 0.1.0
 
-2 directories, 8 files
+Hello DockerCon application
+
+Service (1) Replicas Ports Image
+----------- -------- ----- -----
+hello       1        8080  hashicorp/http-echo:latest
+
+Parameter (1) Value
+------------- -----
+hello.text    Hello DockerCon
 ```
 
-* Let's **clean** our workspace and remove the split and merged versions, keep only `myapp.dockerapp` directory
+* Replace all the `8080` ports with a `${hello.port}` variable, and add it too to the `parameters` section
+* `validate` then `inspect` the application, it displays the `hello.port` parameter
+
+**NOTE:** metadata are available as read-only variables under the `app` prefix. You can use them in your compose file:
+- `${app.name}`
+- `${app.version}`
+- `${app.description}`
+
+**NOTE:** the `parameters` section **MUST** define all the variables with a default value. If any parameter is missing, an error will occur on `validate` or `inspect` commands.
+
+* **Comment** one of the two parameters, then `inspect` or `validate` the application. Don't forget to uncomment the parameter.
 ```sh
-words $ rm -rf myapp-split myapp-merged.dockerapp
+$ docker-app validate hello
+Error: failed to load Compose file: invalid interpolation format for services.hello.command.[]: "required variable hello.text is missing a value". You may need to escape any $ with another $.
 ```
 
-## Inspect your application
+## Render an application to a compose file
 
-`docker-app` comes with another very handy command: `inspect`. With it you can display all important informations without having to read the `YAML` yourself.
+The `render` command will produce a compose file, substituting all the variables with the default values.
 
-* **Inspect** your application package
+* **`render`** the hello application
 ```sh
-words $ docker-app inspect myapp
-myapp 0.1.0
-
-Maintained by: dapworkshop <dapworkshop@docker.com>
-
-My word application
-
-Services (3) Replicas Ports Image
------------- -------- ----- -----
-db           1              dockerdemos/lab-db
-web          1        33000 dockerdemos/lab-web
-words        3              dockerdemos/lab-words
+$ docker-app render hello
+```
+```yaml
+version: "3.7"
+services:
+  hello:
+    command:
+    - -text
+    - Hello DockerCon
+    - -listen
+    - :8080
+    image: hashicorp/http-echo:latest
+    ports:
+    - mode: ingress
+      target: 8080
+      published: 8080
+      protocol: tcp
+```
+* **Modify** the `hello.text` parameter in the `parameters` section and re-render
+* **Replace** the `${hello.text}` variable by `${app.description}` and re-render, then revert it
+* **Save** your rendered compose file using the `--output` flag
+```sh
+$ docker-app render hello --output hello.yml
 ```
 
-`inspect` command will
-* pretty print the metadata
-* list the services
-* but also volumes
-* networks
-* secrets 
-* attachments
-* parameters
+## Override the parameters
 
-**NOTE**: All `docker-app` commands have multiple ways to take an application as an argument:
+You can also override all the variables using the command line, or create another parameters file, with other values, targeting another environment.
+
+* **Override** the port using the `--set` flag with the `render` command
 ```sh
-# You can omit it if current directory is a `*.dockerapp`
-myapp.dockerapp $ docker-app inspect
-# or if there is only one `*.dockerapp` (file or directory) in the current directory
-words $ docker-app inspect
-# you can reference it by its name only `path/to/myapp`
-workshop $ docker-app inspect words/myapp
-# or by its full path `path/to/myapp.dockerapp`
-workshop $ docker-app inspect words/myapp.dockerapp
+$ docker-app render hello --set hello.port=8181
+```
+```yaml
+version: "3.7"
+services:
+  hello:
+    command:
+    - -text
+    - Hello DockerCon
+    - -listen
+    - :8181
+    image: hashicorp/http-echo:latest
+    ports:
+    - mode: ingress
+      target: 8181
+      published: 8181
+      protocol: tcp
 ```
 
-* **Try** to inspect the application from different working directories.
-
-## Validate your application
-
-The `validate` command checks everything is ok with your application:
-* Compose file is valid
-* Required Metadata are filled (name, version) and have the good type
-* Default parameters
-
-* **Validate** your application
+* **Edit** a new `prod-parameters.yml` file and add different values in it for `hello.text` and `hello.port` variables
+* **`render`** the application using this new settings file and the flag `--parameters-files`
 ```sh
-words $ docker-app validate myapp
-words $ echo $?
-0
+$ cat prod-parameters.yml
+hello:
+    text: Hello Workshop
+    port: 80 
+$ docker-app render hello --parameters-files prod-parameters.yml 
+version: "3.7"
+services:
+  hello:
+    command:
+    - -text
+    - Hello Workshop
+    - -listen
+    - :80
+    image: hashicorp/http-echo:latest
+    ports:
+    - mode: ingress
+      target: 80
+      published: 80
+      protocol: tcp
+```
+**NOTE:** Parameters can be overridden using a mix of files or command line parameters. The parameters files doesn't need to define all the variables, a subset is enough. The precedence is the following:
+- command line parameters, last one has precedence on the others
+- files
+- default values in the parameters section.
+
+* **Play** with `render` command and mix `--set` and `--parameters-files`
+```sh
+$ docker-app render hello -s hello.text="Hello Moby" -f prod-parameters.yml
 ```
 
-Let's modify a bit this app:
-* **Comment** the version field in `myapp.dockerapp/metadata.yml` using `#`
-* **Add** some garbage characters to the name: `name: myapp$%%^`
-* **Validate** the application
+**NOTE:** these flags work the same way with `inspect`, `validate` or `install` commands.
+
+* **Try** the same mix of parameters with `inspect`
 ```sh
-words $ docker-app validate myapp
-Error: failed to validate metadata:
-- name: Does not match format 'hostname'
-- version: version is required
-words $ echo $?
-1
-```
-* **Fix** `myapp.dockerapp/metadata.yml`
+$ docker-app inspect hello -f prod-parameters.yml
+hello 0.1.0
 
-* **Comment** the `services:` line in `myapp.dockerapp/docker-compose.yml`
-* **Validate** the application
+Hello DockerCon application
+
+Service (1) Replicas Ports Image
+----------- -------- ----- -----
+hello       1        80    hashicorp/http-echo:latest
+
+Parameters (2) Value
+-------------- -----
+hello.port     80
+hello.text     Hello Workshop
+```
+
+## Deploy the rendered compose file
+
+The rendered compose file can be directly injected to `docker-compose up` or `docker stack deploy` commands to deploy your application.
+
+* **Deploy** using `docker stack deploy`, the `-` references the standard input
 ```sh
-words $ docker-app validate myapp
-Error: failed to load composefiles: failed to parse Compose file version: "3.7"
-#services:
-    web:
-     image: dockerdemos/lab-web
-     ports:
-      - "33000:80"
-
-    words:
-     image: dockerdemos/lab-words
-     deploy:
-       replicas: 3
-       endpoint_mode: dnsrr
-
-    db:
-     image: dockerdemos/lab-db
-
-: yaml: line 2: did not find expected key
-
-words $ echo $?
-1
+$ docker-app render hello | docker stack deploy my-hello-app -c -
+Creating network my-hello-app_default
+Creating service my-hello-app_hello
 ```
-* **Fix** `myapp.dockerapp/docker-compose.yml`
+* **Open** a browser at the `8080` port, it displays `Hello DockerCon`
+* **Re-deploy** changing the text
+```sh
+$ docker-app render hello -s hello.text="Hello Moby" | docker stack deploy my-hello-app -c -
+```
+* **Refresh** your browser and check the message
+* **Deploy** another application using the production parameters, it should open it on port `80`
+```sh  
+$ docker-app render hello -f prod-parameters.yml | docker stack deploy my-prod-app -c -
+```
+* **Remove** the two stacks using `docker stack rm`
 
-**Summary**
-* `docker-app` let's you define metadata and parameters on top of a compose file
-* `inspect` displays all important informations in a compact way
-* `validate` checks everything is ok in the application. You can use it as a CI step.
-* `split`/`merge` transforms your application to a multiple-files/one-file. The one-file version is easy to share.
+**NOTE:** With the parameters, you can now easily scale your application with `docker stack`.
+
+**Bonus Exercise:** Add parameterized `deploy.replicas` to the `hello` service and use it to scale up and down with the `render` command and `--set hello.replicas=X`
+
+## Summary
+
+- With parameters you can use the same compose file and target multiple environments (dev/test/staging/prod/...) 
+- Render let's you check what will be the exact compose-file deployed
+- You can pipe the result of a render to your current workflow (`docker-compose`, `docker stack deploy`) and still use some of the benefits of docker-app
+
+Here is a generic application package template:
+
+```yaml
+version: 0.1.0
+name: base
+description: A generic application template which takes an image as a parameter
+maintainers:
+  - name: garethr
+    email: garethr@docker.com
+
+---
+version: '3.7'
+services:
+  app:
+    image: ${image}
+    ports:
+     - ${port}:${port}
+    deploy:
+      replicas: ${replicas}
+      resources:
+        limits:
+          memory: ${memory}
+
+---
+image: 
+port: 8080
+replicas: 1
+memory: 128MB
+```

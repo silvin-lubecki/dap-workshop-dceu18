@@ -1,266 +1,248 @@
-# Exercise - Configure your application with parameters
+# Exercise - Install with docker-app
 
-> **Time**: Approximately 20 minutes
+> **Time**: Approximately 10 minutes
 
-## Introducing parameters
+With this exerise you will learn how to deploy an application package using `docker-app`.
 
-During this exercise we will learn how add parameters and use them for deployment.
+## Bundle the application
 
-`docker-app` makes the already existing `Compose` variable substitutions system easy to use.
-Just replace any part of the compose file with a variable using this form: `${path.to.my-variable}`
-`docker-app` will seek into the `parameters.yml` file, which is a simple key/value YAML file, to find the default value.
+Deployment is named `install` with docker-app, but before installation, docker-app needs a step to prepare the `bundle`. This step generates two artifacts:
+- A manifest file `bundle.json`
+- an invocation image
 
-Here is the corresponding `parameters.yml` file:
-```yaml
-path:
-    to:
-        my-variable: myvalue
-        other-variable: othervalue
-```
+| Sources             | Compile             | Binary                         | Instantiate          | Runtime   |
+|---------------------|---------------------|--------------------------------|----------------------|-----------|
+| DockerFile          | `docker build`      | Image                          | `docker run`         | Container |
+| Application Package | `docker-app bundle` | Bundle.json + Invocation image | `docker-app install` | Stack     |
 
-**NOTE:** All the application parameters will be displayed using the `inspect` command.
-
-## Add parameters to an existing `docker-compose.yml` file
-
-We will re-use the first compose file we wrote, with the `hello` service.
-
-* **Go back** to `/workshop` and create a single-file `hello` application using the previous `docker-compose.yml`
-```sh
-words $ cd /workshop
-/workshop $ docker-app init hello --compose-file docker-compose.yml --description "Hello DockerCon application" --single-file
-```
-It produces a `hello.dockerapp` file which should be like the following:
-```yaml
-# This section contains your application metadata.
-# Version of the application
-version: 0.1.0
-# Name of the application
-name: hello
-# A short description of the application
-description: Hello DockerCon application
-# Namespace to use when pushing to a registry. This is typically your Hub username.
-#namespace: myhubusername
-# List of application maintainers with name and email for each
-#maintainers:
-#  - name: John Doe
-#    email: john@doe.com
-
----
-# This section contains the Compose file that describes your application services.
-version: '3.7'
-services:
-  hello:
-    image: hashicorp/http-echo:latest
-    command: ["-text", "Hello DockerCon", "-listen",":8080"]
-    ports:
-     - 8080:8080
-
----
-# This section contains the default values for your application parameters.
-{}
-```
-
-* **Edit** the `hello.dockerapp` file and replace the "Hello DockerCon" text with a variable `${hello.text}` and add the variable as a parameter in the `parameters` section
-* **Use `validate`** while you edit your application to check everything is ok
-* **`inspect`** your application, now the parameters section is displayed
+* **Bundle** the `hello` application
 
 ```sh
-$ docker-app inspect hello
-hello 0.1.0
+$ docker-app bundle hello.dockerapp
+Invocation image "hello:0.1.0-invoc" successfully built
 
-Hello DockerCon application
+/workshop $ ls
+bundle.json  docker-compose.yml  hello.dockerapp
 
-Service (1) Replicas Ports Image
------------ -------- ----- -----
-hello       1        8080  hashicorp/http-echo:latest
-
-Parameter (1) Value
-------------- -----
-hello.text    Hello DockerCon
+/workshop $ docker image ls | grep hello
+hello                                 0.1.0-invoc         b4582d6d7187        3 seconds ago       40.1MB
 ```
 
-* Replace all the `8080` ports with a `${hello.port}` variable, and add it too to the `parameters` section
-* `validate` then `inspect` the application, it displays the `hello.port` parameter
+The `bundle.json` has appeared in the dockerapp directory and the invocation image in the local image store.
 
-**NOTE:** metadata are available as read-only variables under the `app` prefix. You can use them in your compose file:
-- `${app.name}`
-- `${app.version}`
-- `${app.description}`
+### Bundle.json
 
-**NOTE:** the `parameters` section **MUST** define all the variables with a default value. If any parameter is missing, an error will occur on `validate` or `inspect` commands.
+The `bundle.json` is a representation of our application package in a `JSON` portable way.
 
-* **Comment** one of the two parameters, then `inspect` or `validate` the application. Don't forget to uncomment the parameter.
 ```sh
-$ docker-app validate hello
-Error: failed to load Compose file: invalid interpolation format for services.hello.command.[]: "required variable hello.text is missing a value". You may need to escape any $ with another $.
+/workshop $ cat bundle.json
+```
+```json
+{
+        "name": "hello",
+        "version": "0.1.0",
+        "description": "Hello DockerCon application",
+        "invocationImages": [
+                {
+                        "imageType": "docker",
+                        "image": "hello:0.1.0-invoc"
+                }
+        ],
+        "images": null,
+        "actions": {
+                "inspect": {
+                        "Modifies": false
+                }
+        },
+        "parameters": {
+                "docker.kubernetes-namespace": {
+                        "type": "string",
+                        "defaultValue": "",
+                        "required": false,
+                        "metadata": {
+                                "description": "Namespace in which to deploy"
+                        },
+                        "destination": {
+                                "path": "",
+                                "env": "DOCKER_KUBERNETES_NAMESPACE"
+                        }
+                },
+                "docker.orchestrator": {
+                        "type": "string",
+                        "defaultValue": "",
+                        "allowedValues": [
+                                "",
+                                "swarm",
+                                "kubernetes"
+                        ],
+                        "required": false,
+                        "metadata": {
+                                "description": "Orchestrator on which to deploy"
+                        },
+                        "destination": {
+                                "path": "",
+                                "env": "DOCKER_STACK_ORCHESTRATOR"
+                        }
+                },
+                "hello.port": {
+                        "type": "string",
+                        "defaultValue": "8080",
+                        "required": false,
+                        "metadata": {},
+                        "destination": {
+                                "path": "",
+                                "env": "docker_param1"
+                        }
+                },
+                "hello.text": {
+                        "type": "string",
+                        "defaultValue": "Hello DockerCon",
+                        "required": false,
+                        "metadata": {},
+                        "destination": {
+                                "path": "",
+                                "env": "docker_param2"
+                        }
+                }
+        },
+        "credentials": {
+                "docker.context": {
+                        "path": "/cnab/app/context.dockercontext",
+                        "env": ""
+                }
+        }
+}
 ```
 
-## Render an application to a compose file
+You can find all the metadata and parameters of our application:
+- name
+- description
+- version
+- parameters `hello.text` and `hello.port`
 
-The `render` command will produce a compose file, substituting all the variables with the default values.
+Plus other things needed to specify deployment context:
+- credentials
+- targeted orchestrator
+- enventually kubernetes namespace
 
-* **`render`** the hello application
+All these parameters are set at the deployment step, some are set by the users (parameters), some are set by docker-app.
+
+### Invocation image
+
+The `invocation image` is a regular image, producing a regular docker container. It contains everything needed to deploy your application:
+- a binary running the deployment toward Swarm or Kubernetes.
+- all the application package files + attachments
+
+The advantages to pack the installation as an invocation image are multiple:
+- it is self-sufficient and can be executed on any docker engine
+- it is independant of the docker-app version your are using, as the runtime to deploy is embedded in the image. You will be able to re-deploy an old invocation-image without worrying about getting the old docker-app binary.
+- the invocation image can be shared on the hub or on any private registry (we will see that in the next exercise)
+
+**NOTE:** The `invocation image` is meant to run on a local docker engine, but targeting a remote orchestrator. Of course it can be also executed on the orchestrator context.
+
+## Actions
+
+The invocation image answers to five actions:
+- `install`
+- `status`
+- `upgrade`
+- `uninstall`
+- `inspect`
+
+Let's go through the first four, we already know the fifth.
+
+### Install
+
+`Usage:  docker-app install [<bundle name>] [options] [flags]`
+
+`install` command takes a required bundle name and let you choose your installation name with `--name` flag.
+
 ```sh
-$ docker-app render hello
+/workshop $ docker-app install hello.dockerapp --name my-hello-installation
+Creating network my-hello-installation_default
+Creating service my-hello-installation_hello
+
+/workshop $ docker stack ls
+NAME                    SERVICES            ORCHESTRATOR
+my-hello-installation   1                   Swarm
 ```
-```yaml
-version: "3.7"
-services:
-  hello:
-    command:
-    - -text
-    - Hello DockerCon
-    - -listen
-    - :8080
-    image: hashicorp/http-echo:latest
-    ports:
-    - mode: ingress
-      target: 8080
-      published: 8080
-      protocol: tcp
-```
-* **Modify** the `hello.text` parameter in the `parameters` section and re-render
-* **Replace** the `${hello.text}` variable by `${app.description}` and re-render, then revert it
-* **Save** your rendered compose file using the `--output` flag
+
+**NOTE:** Don't mix up `bundle name` and `installation name`. By default, if you don't specify the installation name, it will use the bundle name, but be carefull as the installation name must be `hostname` compatible (`_` is forbidden).
+
+You can of course use the same flags `--set` and `--parameters-files` as with the `render` command.
+
+* **`install`** another `hello` application, modifying the ports and the installation name
+
 ```sh
-$ docker-app render hello --output hello.yml
+$ docker-app install hello.dockerapp --name my-hello-prod-installation -f prod-parameters.yml
+Creating network my-hello-prod-installation_default
+Creating service my-hello-prod-installation_hello
+
+$ docker stack ls
+NAME                         SERVICES            ORCHESTRATOR
+my-hello-installation        1                   Swarm
+my-hello-prod-installation   1                   Swarm
 ```
 
-## Override the parameters
+**NOTE:** `install` can take any dockerapp single-file or directory. In that case it will automatically bundle the application then install it. `install` can also deploy directly a previously bundled `bundle.json`.
 
-You can also override all the variables using the command line, or create another parameters file, with other values, targeting another environment.
+* **`install`** using the bundle.json previously built
 
-* **Override** the port using the `--set` flag with the `render` command
 ```sh
-$ docker-app render hello --set hello.port=8181
-```
-```yaml
-version: "3.7"
-services:
-  hello:
-    command:
-    - -text
-    - Hello DockerCon
-    - -listen
-    - :8181
-    image: hashicorp/http-echo:latest
-    ports:
-    - mode: ingress
-      target: 8181
-      published: 8181
-      protocol: tcp
+$ docker-app install bundle.json --name my-app-with-bundle -s hello.port=8181
+Creating network my-app-with-bundle_default
+Creating service my-app-with-bundle_hello
 ```
 
-* **Edit** a new `prod-parameters.yml` file and add different values in it for `hello.text` and `hello.port` variables
-* **`render`** the application using this new settings file and the flag `--parameters-files`
+### Status
+
+`Usage:  docker-app status <installation-name> [flags]`
+
+`status` command takes an installation name and displays informations about deployment or upgrade, service per service.
+
+* **Display** the status of each installation
+
 ```sh
-$ cat prod-parameters.yml
-hello:
-    text: Hello Workshop
-    port: 80 
-$ docker-app render hello --parameters-files prod-parameters.yml 
-version: "3.7"
-services:
-  hello:
-    command:
-    - -text
-    - Hello Workshop
-    - -listen
-    - :80
-    image: hashicorp/http-echo:latest
-    ports:
-    - mode: ingress
-      target: 80
-      published: 80
-      protocol: tcp
-```
-**NOTE:** Parameters can be overridden using a mix of files or command line parameters. The parameters files doesn't need to define all the variables, a subset is enough. The precedence is the following:
-- command line parameters, last one has precedence on the others
-- files
-- default values in the parameters section.
+$ docker-app status my-hello-installation
+ID                  NAME                          MODE                REPLICAS            IMAGE                        PORTS
+qspyvbdxf1js        my-hello-installation_hello   replicated          1/1                 hashicorp/http-echo:latest   *:8080->8080/tcp
 
-* **Play** with `render` command and mix `--set` and `--parameters-files`
+$ docker-app status my-hello-prod-installation
+ID                  NAME                               MODE                REPLICAS            IMAGE                        PORTS
+5d1glvey8b1l        my-hello-prod-installation_hello   replicated          1/1                 hashicorp/http-echo:latest   *:80->80/tcp
+```
+
+### Upgrade
+
+`Usage:  docker-app upgrade <installation-name> [options] [flags]`
+
+`upgrade` command lets you modify your installation, for example to change a port or to scale a service.
+
+* **`upgrade`** the `my-hello-installation` installation and change the `hello.text`
+
 ```sh
-$ docker-app render hello -s hello.text="Hello Moby" -f prod-parameters.yml
+$ docker-app upgrade my-hello-installation -s hello.text="Hello upgrade"
+Updating service my-hello-installation_hello (id: qspyvbdxf1jsh5hj95er7x598)
 ```
 
-**NOTE:** these flags work the same way with `inspect`, `validate` or `install` commands.
+* **Check** the text has been updated on port `8080`
 
-* **Try** the same mix of parameters with `inspect`
+### Uninstall
+
+`Usage:  docker-app uninstall <installation-name> [flags]`
+
+`uninstall` command removes your installation.
+
+* **`uninstall`** all the previous installations.
+
 ```sh
-$ docker-app inspect hello -f prod-parameters.yml
-hello 0.1.0
-
-Hello DockerCon application
-
-Service (1) Replicas Ports Image
------------ -------- ----- -----
-hello       1        80    hashicorp/http-echo:latest
-
-Parameters (2) Value
--------------- -----
-hello.port     80
-hello.text     Hello Workshop
+$ docker-app uninstall my-hello-installation
+Removing service my-hello-installation_hello
+Removing network my-hello-installation_default
 ```
-
-## Deploy the rendered compose file
-
-The rendered compose file can be directly injected to `docker-compose up` or `docker stack deploy` commands to deploy your application.
-
-* **Deploy** using `docker stack deploy`, the `-` references the standard input
-```sh
-$ docker-app render hello | docker stack deploy my-hello-app -c -
-Creating network my-hello-app_default
-Creating service my-hello-app_hello
-```
-* **Open** a browser at the `8080` port, it displays `Hello DockerCon`
-* **Re-deploy** changing the text
-```sh
-$ docker-app render hello -s hello.text="Hello Moby" | docker stack deploy my-hello-app -c -
-```
-* **Refresh** your browser and check the message
-* **Deploy** another application using the production parameters, it should open it on port `80`
-```sh  
-$ docker-app render hello -f prod-parameters.yml | docker stack deploy my-prod-app -c -
-```
-* **Remove** the two stacks using `docker stack rm`
-
-**NOTE:** With the parameters, you can now easily scale your application with `docker stack`.
-
-**Bonus Exercise:** Add parameterized `deploy.replicas` to the `hello` service and use it to scale up and down with the `render` command and `--set hello.replicas=X`
 
 ## Summary
 
-- With parameters you can use the same compose file and target multiple environments (dev/test/staging/prod/...) 
-- Render let's you check what will be the exact compose-file deployed
-- You can pipe the result of a render to your current workflow (`docker-compose`, `docker stack deploy`) and still use some of the benefits of docker-app
-
-Here is a generic application package template:
-
-```yaml
-version: 0.1.0
-name: base
-description: A generic application template which takes an image as a parameter
-maintainers:
-  - name: garethr
-    email: garethr@docker.com
-
----
-version: '3.7'
-services:
-  app:
-    image: ${image}
-    ports:
-     - ${port}:${port}
-    deploy:
-      replicas: ${replicas}
-      resources:
-        limits:
-          memory: ${memory}
-
----
-image: 
-port: 8080
-replicas: 1
-memory: 128MB
-```
+* The bundle is a new way to install your application. It is self-contained, including the application files and the deploy runtime binaries.
+* The invocation image can be stored and shared in a registry
+* The bundle.json is a portable way to define the application
